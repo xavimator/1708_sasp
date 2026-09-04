@@ -507,6 +507,9 @@ svg.icon{width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:2
             <div class="sub" id="homeSub">—</div>
           </div>
         </div>
+        <button class="icon-btn" id="logoutBtn" title="Cerrar sesión">
+          <svg class="icon" viewBox="0 0 24 24" width="17" height="17"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        </button>
       </div>
 
       <h1 style="font-size:20px; margin-bottom:4px;">1708 Sostenibilidad aplicada a los sectores productivos</h1>
@@ -537,6 +540,8 @@ svg.icon{width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:2
       </div>
       <p style="font-size:13.5px; color:#5b6b6c; line-height:1.55; margin-bottom:18px;">Elige un capítulo para repasar. Las preguntas cambian cada vez que lo intentas.</p>
       <div class="picker-list" id="pickerList"></div>
+      <div class="spacer"></div>
+      <button class="btn btn-outline-dark" id="pickerExitBtn" style="margin-top:10px;">Salir al lobby</button>
     </div>
   </section>
 
@@ -1227,6 +1232,7 @@ function initLogin(){
   $('#userInput').addEventListener('input', validateLogin);
   $('#passInput').addEventListener('input', validateLogin);
   $('#loginBtn').addEventListener('click', doLogin);
+  $('#logoutBtn').addEventListener('click', doLogout);
 }
 function validateLogin(){
   const u = $('#userInput').value.trim();
@@ -1241,6 +1247,22 @@ function doLogin(){
   upsertProfile();
   renderHome();
   showScreen('home');
+}
+
+function doLogout(){
+  state.username = '';
+  state.avatar = null;
+  state.currentSlide = 0;
+  state.earnedBadges = [];
+  state.slideEnterTime = null;
+  state.quiz = null;
+
+  $('#userInput').value = '';
+  $('#passInput').value = '';
+  $$('.avatar-card', $('#avatarGrid')).forEach(c => c.classList.remove('selected'));
+  $('#loginBtn').disabled = true;
+
+  showScreen('login');
 }
 
 /* ============================================================
@@ -1638,6 +1660,7 @@ function init(){
   $('#startBtn').addEventListener('click', () => enterReader(state.currentSlide));
   $('#practiceBtn').addEventListener('click', () => { renderPracticePicker(); showScreen('practicePicker'); });
   $('#practiceBackBtn').addEventListener('click', () => showScreen('home'));
+  $('#pickerExitBtn').addEventListener('click', () => { renderHome(); showScreen('home'); });
   $('#practiceQuizBackBtn').addEventListener('click', () => showScreen('home'));
 
   $('#resultsBtn').addEventListener('click', () => { showScreen('results'); renderResultsPanel(); });
