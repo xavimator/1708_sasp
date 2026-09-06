@@ -20,6 +20,10 @@ const CACHE_NAME = `sasp-1708-${CACHE_VERSION}`;
 const APP_SHELL = [
   './',
   './index.html',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
+  './icon-512-maskable.png',
 ];
 
 self.addEventListener('install', (event) => {

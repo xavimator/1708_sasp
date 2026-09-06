@@ -1,0 +1,32 @@
+{
+  "name": "1708 Sostenibilidad aplicada a los sectores productivos",
+  "short_name": "SASP 1708",
+  "description": "Curso de LCI Barcelona: Sostenibilidad aplicada a los sectores productivos.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#062632",
+  "theme_color": "#062632",
+  "lang": "es-ES",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
