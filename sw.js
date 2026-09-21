@@ -10,9 +10,13 @@
      "cache-first": una vez descargados, no vuelven a pedirse por red.
    - Las llamadas a Supabase (api/rest) NUNCA se cachean: necesitan
      red real siempre, así que se dejan pasar directamente.
+
+   v2: se sube la versión de caché para forzar que todos los
+   dispositivos descarten la copia antigua del "app shell" y recojan
+   el index.html actualizado (progreso guardado + páginas ya leídas).
 */
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `sasp-1708-${CACHE_VERSION}`;
 
 // Se precachea el propio documento para que la primera visita
