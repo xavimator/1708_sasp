@@ -7082,7 +7082,65 @@ const state = {
   screen: 'login',
   quiz: null,             // active quiz session {questions, idx, correct, incorrect, answered, chapterKey, standalone}
   locks: {},              // group_key -> row from content_locks (cargado desde Supabase)
+  readOkSlides: new Set(), // índices de diapositivas ya leídas ≥20s alguna vez por este usuario
 };
+
+/* ---------- páginas ya leídas a tiempo (persistido por usuario) ---------- */
+function readOkStorageKey(){
+  return `sasp1708_readok_${state.username}`;
+}
+function loadReadOkSlides(){
+  try{
+    const raw = localStorage.getItem(readOkStorageKey());
+    state.readOkSlides = raw ? new Set(JSON.parse(raw)) : new Set();
+  }catch(err){
+    state.readOkSlides = new Set();
+  }
+}
+function saveReadOkSlides(){
+  try{
+    localStorage.setItem(readOkStorageKey(), JSON.stringify([...state.readOkSlides]));
+  }catch(err){
+    console.warn('[readOk] No se pudo guardar en localStorage:', err);
+  }
+}
+function isSlideAlreadyReadOk(idx){
+  return state.readOkSlides.has(idx);
+}
+function markSlideReadOk(idx){
+  if(!state.readOkSlides.has(idx)){
+    state.readOkSlides.add(idx);
+    saveReadOkSlides();
+  }
+}
+
+/* ---------- progreso del curso (página actual + capítulos/cuestionarios superados) ---------- */
+function progressStorageKey(){
+  return `sasp1708_progress_${state.username}`;
+}
+function loadProgress(){
+  try{
+    const raw = localStorage.getItem(progressStorageKey());
+    const data = raw ? JSON.parse(raw) : null;
+    state.currentSlide = (data && typeof data.currentSlide === 'number' && data.currentSlide >= 0 && data.currentSlide < TOTAL_SLIDES)
+      ? data.currentSlide
+      : 0;
+    state.earnedBadges = (data && Array.isArray(data.earnedBadges)) ? data.earnedBadges : [];
+  }catch(err){
+    state.currentSlide = 0;
+    state.earnedBadges = [];
+  }
+}
+function saveProgress(){
+  try{
+    localStorage.setItem(progressStorageKey(), JSON.stringify({
+      currentSlide: state.currentSlide,
+      earnedBadges: state.earnedBadges,
+    }));
+  }catch(err){
+    console.warn('[progress] No se pudo guardar en localStorage:', err);
+  }
+}
 
 /* ---------- screen switching ---------- */
 function showScreen(name){
@@ -7130,6 +7188,8 @@ function validateLogin(){
 async function doLogin(){
   if(!validateLogin()) return;
   state.username = $('#userInput').value.trim();
+  loadReadOkSlides();
+  loadProgress();
   upsertProfile();
   await refreshLocks();
   renderHome();
@@ -7143,6 +7203,7 @@ function doLogout(){
   state.earnedBadges = [];
   state.slideEnterTime = null;
   state.quiz = null;
+  state.readOkSlides = new Set();
 
   $('#userInput').value = '';
   $('#passInput').value = '';
@@ -7353,6 +7414,11 @@ function startReadCountdown(){
   clearInterval(state.countdownTimer);
   const el = $('#readCountdownText');
   const pill = $('#readCountdown');
+  if(isSlideAlreadyReadOk(state.currentSlide)){
+    el.textContent = 'Pasar página';
+    pill.classList.add('ready');
+    return;
+  }
   const tick = () => {
     const elapsed = Date.now() - state.slideEnterTime;
     const remaining = Math.max(0, 20 - Math.floor(elapsed / 1000));
@@ -7377,11 +7443,14 @@ function showReadToast(){
 }
 
 function goNext(){
+  const idx = state.currentSlide;
+  const alreadyOk = isSlideAlreadyReadOk(idx);
   const elapsed = state.slideEnterTime === null ? 20000 : (Date.now() - state.slideEnterTime);
-  const readOk = elapsed >= 20000;
+  const readOk = alreadyOk || elapsed >= 20000;
   if(!readOk) showReadToast();
-  const data = FLAT[state.currentSlide];
-  trackSlideView(data, elapsed, readOk);
+  const data = FLAT[idx];
+  if(readOk) markSlideReadOk(idx);
+  if(!alreadyOk) trackSlideView(data, elapsed, readOk);
 
   // badge1 on leaving very first slide of the whole course
   if(state.currentSlide === 0 && !state.earnedBadges.includes(1)){
@@ -7417,21 +7486,27 @@ function proceedNext(data){
     return;
   }
   state.currentSlide = nextIdx;
+  saveProgress();
   renderSlide();
 }
 
 function goPrev(){
+  const idx = state.currentSlide;
+  const alreadyOk = isSlideAlreadyReadOk(idx);
   const elapsed = state.slideEnterTime === null ? 20000 : (Date.now() - state.slideEnterTime);
-  const readOk = elapsed >= 20000;
+  const readOk = alreadyOk || elapsed >= 20000;
   if(!readOk) showReadToast();
-  trackSlideView(FLAT[state.currentSlide], elapsed, readOk);
+  if(readOk) markSlideReadOk(idx);
+  if(!alreadyOk) trackSlideView(FLAT[idx], elapsed, readOk);
   if(state.currentSlide === 0) return;
   state.currentSlide--;
+  saveProgress();
   renderSlide();
 }
 
 function awardBadge(n, cont){
   state.earnedBadges.push(n);
+  saveProgress();
   trackBadgeEarned(n);
   const overlay = $('#badgeOverlay');
   $('#badgeOverlayImg').src = BADGE_IMAGES[n];
@@ -7470,10 +7545,13 @@ function initScrub(){
     // live preview only on release to avoid thrashing timers; but keep simple:
   });
   scrub.addEventListener('change', () => {
+    const idx = state.currentSlide;
+    const alreadyOk = isSlideAlreadyReadOk(idx);
     const elapsed = state.slideEnterTime === null ? 20000 : (Date.now() - state.slideEnterTime);
-    const readOk = elapsed >= 20000;
+    const readOk = alreadyOk || elapsed >= 20000;
     if(!readOk) showReadToast();
-    trackSlideView(FLAT[state.currentSlide], elapsed, readOk);
+    if(readOk) markSlideReadOk(idx);
+    if(!alreadyOk) trackSlideView(FLAT[idx], elapsed, readOk);
     const targetIdx = parseInt(scrub.value, 10);
     const targetChapter = CHAPTERS[FLAT[targetIdx].chapterIndex];
     const access = isChapterLocked(targetChapter);
@@ -7483,6 +7561,7 @@ function initScrub(){
       return;
     }
     state.currentSlide = targetIdx;
+    saveProgress();
     renderSlide();
   });
 }
