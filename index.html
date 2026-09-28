@@ -246,7 +246,7 @@ button{font-family:var(--font-body);cursor:pointer;}
 .unit-heading:first-child{margin-top:0;}
 .light-screen .unit-heading{color:var(--petrol);}
 .chapter-list{display:flex; flex-direction:column; gap:9px; margin-bottom:22px;}
-.chapter-row{
+.chapter-row{cursor:pointer;
   display:flex; align-items:center; gap:12px;
   padding:12px 14px; border-radius:13px;
   background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
@@ -7271,6 +7271,11 @@ function renderHome(){
       </div>
       ${isCurrent && !isDone && !access.locked ? '<div class="tag">EN CURSO</div>' : ''}
     `;
+    if(access.locked){
+      row.addEventListener('click', () => showLockOverlay(access.unlockAt));
+    } else {
+      row.addEventListener('click', () => enterReader(firstFlatIdx));
+    }
     list.appendChild(row);
   });
 
