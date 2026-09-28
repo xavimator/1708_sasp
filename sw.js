@@ -16,7 +16,7 @@
    el index.html actualizado (progreso guardado + páginas ya leídas).
 */
 
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = `sasp-1708-${CACHE_VERSION}`;
 
 // Se precachea el propio documento para que la primera visita
