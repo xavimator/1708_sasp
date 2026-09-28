@@ -433,6 +433,15 @@ button{font-family:var(--font-body);cursor:pointer;}
   background:linear-gradient(180deg, rgba(6,38,50,0) 0%, rgba(6,38,50,0.94) 30%, var(--petrol-deep) 100%);
   padding:16px 16px calc(10px + var(--safe-b));
 }
+/* Controles que aparecen/desaparecen con un toque */
+.reader-controls{
+  transition:opacity .25s ease, transform .25s ease, visibility 0s linear 0s;
+}
+.reader-controls.is-hidden{
+  opacity:0; transform:translateY(14px);
+  pointer-events:none; visibility:hidden;
+  transition:opacity .25s ease, transform .25s ease, visibility 0s linear .25s;
+}
 .read-countdown{
   display:flex; align-items:center; justify-content:center; gap:6px;
   margin-bottom:7px; font-size:10.5px; font-weight:600; color:rgba(255,255,255,0.55);
@@ -7292,6 +7301,59 @@ function enterReader(fromIndex){
   state.currentSlide = fromIndex;
   showScreen('reader');
   renderSlide();
+  showControls(); // se muestran al entrar y se ocultan solos a los 2 s
+}
+
+/* ---------- Controles inferiores: toque para mostrar/ocultar ---------- */
+const CONTROLS_HIDE_MS = 2000;
+let controlsHideTimer = null;
+let controlsHeld = false; // dedo sobre los controles (p. ej. arrastrando el slider)
+
+function scheduleHideControls(){
+  clearTimeout(controlsHideTimer);
+  if(controlsHeld) return;
+  controlsHideTimer = setTimeout(hideControls, CONTROLS_HIDE_MS);
+}
+function showControls(){
+  const c = $('.reader-controls');
+  if(!c) return;
+  c.classList.remove('is-hidden');
+  scheduleHideControls();
+}
+function hideControls(){
+  clearTimeout(controlsHideTimer);
+  if(controlsHeld) return;
+  const c = $('.reader-controls');
+  if(c) c.classList.add('is-hidden');
+}
+function toggleControls(){
+  const c = $('.reader-controls');
+  if(c.classList.contains('is-hidden')) showControls(); else hideControls();
+}
+function initReaderControlsToggle(){
+  const screen = $('#screen-reader');
+  const controls = $('.reader-controls');
+
+  // Toque en la pantalla (fuera de botones, controles, opciones del quiz, etc.)
+  screen.addEventListener('click', e => {
+    if(e.target.closest('button, input, select, textarea, a, label, .reader-controls, .q-option, .slide-table-wrap, .badge-earned-overlay')) return;
+    const sel = window.getSelection && window.getSelection();
+    if(sel && String(sel).length) return; // no interferir con la selección de texto
+    toggleControls();
+  });
+
+  // Mientras se usan los controles, no se ocultan; al soltar, vuelve la cuenta de 2 s
+  controls.addEventListener('pointerdown', () => {
+    controlsHeld = true;
+    clearTimeout(controlsHideTimer);
+  });
+  const release = () => {
+    if(!controlsHeld) return;
+    controlsHeld = false;
+    scheduleHideControls();
+  };
+  document.addEventListener('pointerup', release);
+  document.addEventListener('pointercancel', release);
 }
 
 function renderSlide(){
@@ -7915,6 +7977,8 @@ function init(){
   $('#locksBackBtn').addEventListener('click', () => showScreen('home'));
 
   $('#finaleHomeBtn').addEventListener('click', () => { renderHome(); showScreen('home'); });
+
+  initReaderControlsToggle();
 
   // swipe support
   let touchStartX = null, touchStartY = null;
